@@ -145,6 +145,13 @@
 			remoteGlobalIDString = BECDF66C0761BA81005FE872;
 			remoteInfo = SDL3;
 		};
+		F3F76C512BF6A84800214E05 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F35475D42829BA80007E9EDA /* avif.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F314F1AE2B62C8AA0006624D;
+			remoteInfo = aom;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -310,6 +317,7 @@
 			isa = PBXGroup;
 			children = (
 				F35475DC2829BA80007E9EDA /* avif.framework */,
+				F3F76C522BF6A84800214E05 /* libaom.a */,
 				F35475DE2829BA80007E9EDA /* libdav1d.a */,
 				F35475E02829BA80007E9EDA /* libdav1d-8bit.a */,
 				F35475E22829BA80007E9EDA /* libdav1d-16bit.a */,
@@ -493,6 +501,13 @@
 			remoteRef = F3E1F8942A794A3D00AC76D3 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
+		F3F76C522BF6A84800214E05 /* libaom.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libaom.a;
+			remoteRef = F3F76C512BF6A84800214E05 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 /* End PBXReferenceProxy section */
 
 /* Begin PBXResourcesBuildPhase section */
@@ -551,7 +566,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "PRODUCT_NAME=SDL3_image\nOPTIONAL_FRAMEWORKS=\"avif jxl webp\"\n\nmkdir -p build/dmg-tmp\ncp -a build/$PRODUCT_NAME.xcframework build/dmg-tmp/\ncp pkg-support/resources/ReadMe.txt build/dmg-tmp\nfor i in $OPTIONAL_FRAMEWORKS; do\n    if [ -d build/$i.xcframework ]; then\n        mkdir -p build/dmg-tmp/optional\n        cp -a build/$i.xcframework build/dmg-tmp/optional/\n    fi\ndone\n\n# remove the .DS_Store files if any (we may want to provide one in the future for fancy .dmgs)\nrm -rf build/dmg-tmp/.DS_Store\n\n# create the dmg\nhdiutil create -ov -fs HFS+ -volname $PRODUCT_NAME -srcfolder build/dmg-tmp build/$PRODUCT_NAME.dmg\n\n# clean up\nrm -rf build/dmg-tmp\n";
+			shellScript = "set -ex\n\nPRODUCT_NAME=SDL3_image\nOPTIONAL_FRAMEWORKS=\"avif jxl webp\"\n\nmkdir -p build/dmg-tmp/share/cmake/$PRODUCT_NAME\ncp -a build/$PRODUCT_NAME.xcframework build/dmg-tmp/\ncp pkg-support/resources/ReadMe.txt build/dmg-tmp\ncp pkg-support/resources/share/cmake/${PRODUCT_NAME}/${PRODUCT_NAME}Config.cmake build/dmg-tmp/share/cmake/${PRODUCT_NAME}\ncp pkg-support/resources/share/cmake/${PRODUCT_NAME}/${PRODUCT_NAME}ConfigVersion.cmake build/dmg-tmp/share/cmake/${PRODUCT_NAME}\nfor i in $OPTIONAL_FRAMEWORKS; do\n    if [ -d build/$i.xcframework ]; then\n        mkdir -p build/dmg-tmp/optional\n        cp -a build/$i.xcframework build/dmg-tmp/optional/\n    fi\ndone\n\n# remove the .DS_Store files if any (we may want to provide one in the future for fancy .dmgs)\nrm -rf build/dmg-tmp/.DS_Store\n\n# create the dmg\nhdiutil create -ov -fs HFS+ -volname $PRODUCT_NAME -srcfolder build/dmg-tmp build/$PRODUCT_NAME.dmg\n\n# clean up\nrm -rf build/dmg-tmp\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -615,8 +630,8 @@
 			buildSettings = {
 				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
 				COPY_PHASE_STRIP = NO;
-				DYLIB_COMPATIBILITY_VERSION = 1.0.0;
-				DYLIB_CURRENT_VERSION = 1.0.0;
+				DYLIB_COMPATIBILITY_VERSION = 101.0.0;
+				DYLIB_CURRENT_VERSION = 101.0.0;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_TESTABILITY = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -655,7 +670,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				MARKETING_VERSION = 3.0.0;
+				MARKETING_VERSION = 3.1.0;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.libsdl.SDL3-image";
 				PRODUCT_NAME = SDL3_image;
@@ -678,8 +693,8 @@
 			buildSettings = {
 				ALLOW_TARGET_PLATFORM_SPECIALIZATION = YES;
 				DEPLOYMENT_POSTPROCESSING = YES;
-				DYLIB_COMPATIBILITY_VERSION = 1.0.0;
-				DYLIB_CURRENT_VERSION = 1.0.0;
+				DYLIB_COMPATIBILITY_VERSION = 101.0.0;
+				DYLIB_CURRENT_VERSION = 101.0.0;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -717,7 +732,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
-				MARKETING_VERSION = 3.0.0;
+				MARKETING_VERSION = 3.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.libsdl.SDL3-image";
 				PRODUCT_NAME = SDL3_image;
 				SUPPORTED_PLATFORMS = "watchsimulator watchos macosx iphonesimulator iphoneos driverkit appletvsimulator appletvos";

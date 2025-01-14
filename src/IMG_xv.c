@@ -1,6 +1,6 @@
 /*
   SDL_image:  An example image loading library for use with SDL
-  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -22,7 +22,6 @@
 /* This is a XV thumbnail image file loading framework */
 
 #include <SDL3_image/SDL_image.h>
-#include "IMG.h"
 
 #ifdef LOAD_XV
 
@@ -80,21 +79,23 @@ static int get_header(SDL_IOStream *src, int *w, int *h)
 }
 
 /* See if an image is contained in a data source */
-int IMG_isXV(SDL_IOStream *src)
+bool IMG_isXV(SDL_IOStream *src)
 {
     Sint64 start;
-    int is_XV;
+    bool is_XV;
     int w, h;
 
-    if ( !src )
-        return 0;
+    if (!src) {
+        return false;
+    }
+
     start = SDL_TellIO(src);
-    is_XV = 0;
+    is_XV = false;
     if ( get_header(src, &w, &h) == 0 ) {
-        is_XV = 1;
+        is_XV = true;
     }
     SDL_SeekIO(src, start, SDL_IO_SEEK_SET);
-    return(is_XV);
+    return is_XV;
 }
 
 /* Load a XV thumbnail image from an SDL datasource */
@@ -141,7 +142,7 @@ done:
             SDL_DestroySurface(surface);
             surface = NULL;
         }
-        IMG_SetError("%s", error);
+        SDL_SetError("%s", error);
     }
     return surface;
 }
@@ -152,15 +153,15 @@ done:
 #endif
 
 /* See if an image is contained in a data source */
-int IMG_isXV(SDL_IOStream *src)
+bool IMG_isXV(SDL_IOStream *src)
 {
-    return(0);
+    return false;
 }
 
 /* Load a XXX type image from an SDL datasource */
 SDL_Surface *IMG_LoadXV_IO(SDL_IOStream *src)
 {
-    return(NULL);
+    return NULL;
 }
 
 #endif /* LOAD_XV */

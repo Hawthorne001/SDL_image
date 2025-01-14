@@ -1,6 +1,6 @@
 /*
   showanim:  A test application for the SDL image loading library.
-  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -78,12 +78,12 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (SDL_Init(SDL_INIT_VIDEO) == -1) {
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init(SDL_INIT_VIDEO) failed: %s\n", SDL_GetError());
         return(2);
     }
 
-    if (SDL_CreateWindowAndRenderer("animation demo", 0, 0, flags, &window, &renderer) < 0) {
+    if (!SDL_CreateWindowAndRenderer("animation demo", 0, 0, flags, &window, &renderer)) {
         SDL_Log("SDL_CreateWindowAndRenderer() failed: %s\n", SDL_GetError());
         return(2);
     }
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
             while ( SDL_PollEvent(&event) ) {
                 switch (event.type) {
                     case SDL_EVENT_KEY_UP:
-                        switch (event.key.keysym.sym) {
+                        switch (event.key.key) {
                             case SDLK_LEFT:
                                 if ( i > 1 ) {
                                     i -= 2;
@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
                                 }
                                 break;
                             case SDLK_ESCAPE:
-                            case SDLK_q:
+                            case SDLK_Q:
                                 argv[i+1] = NULL;
                                 SDL_FALLTHROUGH;
                             case SDLK_SPACE:

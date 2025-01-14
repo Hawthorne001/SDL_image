@@ -1,6 +1,6 @@
 /*
   SDL_image:  An example image loading library for use with SDL
-  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -36,7 +36,6 @@
 #include <SDL3/SDL_endian.h>
 
 #include <SDL3_image/SDL_image.h>
-#include "IMG.h"
 
 #ifdef LOAD_PCX
 
@@ -58,30 +57,32 @@ struct PCXheader {
 };
 
 /* See if an image is contained in a data source */
-int IMG_isPCX(SDL_IOStream *src)
+bool IMG_isPCX(SDL_IOStream *src)
 {
     Sint64 start;
-    int is_PCX;
+    bool is_PCX;
     const int ZSoft_Manufacturer = 10;
     const int PC_Paintbrush_Version = 5;
     const int PCX_Uncompressed_Encoding = 0;
     const int PCX_RunLength_Encoding = 1;
     struct PCXheader pcxh;
 
-    if ( !src )
-        return 0;
+    if (!src) {
+        return false;
+    }
+
     start = SDL_TellIO(src);
-    is_PCX = 0;
+    is_PCX = false;
     if (SDL_ReadIO(src, &pcxh, sizeof(pcxh)) == sizeof(pcxh) ) {
         if ( (pcxh.Manufacturer == ZSoft_Manufacturer) &&
              (pcxh.Version == PC_Paintbrush_Version) &&
              (pcxh.Encoding == PCX_RunLength_Encoding ||
               pcxh.Encoding == PCX_Uncompressed_Encoding) ) {
-            is_PCX = 1;
+            is_PCX = true;
         }
     }
     SDL_SeekIO(src, start, SDL_IO_SEEK_SET);
-    return(is_PCX);
+    return is_PCX;
 }
 
 /* Load a PCX type image from an SDL datasource */
@@ -110,11 +111,11 @@ SDL_Surface *IMG_LoadPCX_IO(SDL_IOStream *src)
         error = "file truncated";
         goto done;
     }
-    pcxh.Xmin = SDL_SwapLE16(pcxh.Xmin);
-    pcxh.Ymin = SDL_SwapLE16(pcxh.Ymin);
-    pcxh.Xmax = SDL_SwapLE16(pcxh.Xmax);
-    pcxh.Ymax = SDL_SwapLE16(pcxh.Ymax);
-    pcxh.BytesPerLine = SDL_SwapLE16(pcxh.BytesPerLine);
+    pcxh.Xmin = SDL_Swap16LE(pcxh.Xmin);
+    pcxh.Ymin = SDL_Swap16LE(pcxh.Ymin);
+    pcxh.Xmax = SDL_Swap16LE(pcxh.Xmax);
+    pcxh.Ymax = SDL_Swap16LE(pcxh.Ymax);
+    pcxh.BytesPerLine = SDL_Swap16LE(pcxh.BytesPerLine);
 
 #if 0
     printf("Manufacturer = %d\n", pcxh.Manufacturer);
@@ -233,11 +234,20 @@ SDL_Surface *IMG_LoadPCX_IO(SDL_IOStream *src)
     }
 
     if ( bits == 8 ) {
-        SDL_Color *colors = surface->format->palette->colors;
         int nc = 1 << src_bits;
+        SDL_Palette *palette;
         int i;
 
-        surface->format->palette->ncolors = nc;
+        palette = SDL_CreateSurfacePalette(surface);
+        if (!palette) {
+            error = "Couldn't create palette";
+            goto done;
+        }
+        if (nc > palette->ncolors) {
+            nc = palette->ncolors;
+        }
+        palette->ncolors = nc;
+
         if ( src_bits == 8 ) {
             Uint8 pch;
             Uint8 colormap[768];
@@ -256,15 +266,15 @@ SDL_Surface *IMG_LoadPCX_IO(SDL_IOStream *src)
                 goto done;
             }
             for ( i = 0; i < 256; i++ ) {
-                colors[i].r = colormap[i * 3 + 0];
-                colors[i].g = colormap[i * 3 + 1];
-                colors[i].b = colormap[i * 3 + 2];
+                palette->colors[i].r = colormap[i * 3 + 0];
+                palette->colors[i].g = colormap[i * 3 + 1];
+                palette->colors[i].b = colormap[i * 3 + 2];
             }
         } else {
             for ( i = 0; i < nc; i++ ) {
-                colors[i].r = pcxh.Colormap[i * 3 + 0];
-                colors[i].g = pcxh.Colormap[i * 3 + 1];
-                colors[i].b = pcxh.Colormap[i * 3 + 2];
+                palette->colors[i].r = pcxh.Colormap[i * 3 + 0];
+                palette->colors[i].g = pcxh.Colormap[i * 3 + 1];
+                palette->colors[i].b = pcxh.Colormap[i * 3 + 2];
             }
         }
     }
@@ -277,9 +287,9 @@ done:
             SDL_DestroySurface(surface);
             surface = NULL;
         }
-        IMG_SetError("%s", error);
+        SDL_SetError("%s", error);
     }
-    return(surface);
+    return surface;
 }
 
 #else
@@ -288,15 +298,15 @@ done:
 #endif
 
 /* See if an image is contained in a data source */
-int IMG_isPCX(SDL_IOStream *src)
+bool IMG_isPCX(SDL_IOStream *src)
 {
-    return(0);
+    return false;
 }
 
 /* Load a PCX type image from an SDL datasource */
 SDL_Surface *IMG_LoadPCX_IO(SDL_IOStream *src)
 {
-    return(NULL);
+    return NULL;
 }
 
 #endif /* LOAD_PCX */

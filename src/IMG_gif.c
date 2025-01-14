@@ -1,6 +1,6 @@
 /*
   SDL_image:  An example image loading library for use with SDL
-  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -22,7 +22,6 @@
 /* This is a GIF image file loading framework */
 
 #include <SDL3_image/SDL_image.h>
-#include "IMG.h"
 
 #ifdef LOAD_GIF
 
@@ -48,12 +47,12 @@
 #include <SDL3/SDL.h>
 
 #define Image           SDL_Surface
-#define RWSetMsg        IMG_SetError
+#define RWSetMsg        SDL_SetError
 #define ImageNewCmap(w, h, s)   SDL_CreateSurface(w, h, SDL_PIXELFORMAT_INDEX8)
 #define ImageSetCmap(s, i, R, G, B) do { \
-                s->format->palette->colors[i].r = R; \
-                s->format->palette->colors[i].g = G; \
-                s->format->palette->colors[i].b = B; \
+                palette->colors[i].r = R; \
+                palette->colors[i].g = G; \
+                palette->colors[i].b = B; \
             } while (0)
 /* * * * * */
 
@@ -138,7 +137,7 @@ static Image *ReadImage(SDL_IOStream * src, int len, int height, int,
 			unsigned char cmap[3][MAXCOLORMAPSIZE],
 			int gray, int interlace, int ignore, State_t * state);
 
-static SDL_bool NormalizeFrames(Frame_t *frames, int count)
+static bool NormalizeFrames(Frame_t *frames, int count)
 {
     SDL_Surface *image;
     int i;
@@ -149,15 +148,15 @@ static SDL_bool NormalizeFrames(Frame_t *frames, int count)
 
 
     if (SDL_SurfaceHasColorKey(frames[0].image)) {
-        image = SDL_ConvertSurfaceFormat(frames[0].image, SDL_PIXELFORMAT_ARGB8888);
+        image = SDL_ConvertSurface(frames[0].image, SDL_PIXELFORMAT_ARGB8888);
     } else {
-        image = SDL_ConvertSurfaceFormat(frames[0].image, SDL_PIXELFORMAT_XRGB8888);
+        image = SDL_ConvertSurface(frames[0].image, SDL_PIXELFORMAT_XRGB8888);
     }
     if (!image) {
-        return SDL_FALSE;
+        return false;
     }
 
-    fill = SDL_MapRGBA(image->format, 0, 0, 0, SDL_ALPHA_TRANSPARENT);
+    fill = SDL_MapSurfaceRGBA(image, 0, 0, 0, SDL_ALPHA_TRANSPARENT);
 
     rect.x = 0;
     rect.y = 0;
@@ -189,7 +188,7 @@ static SDL_bool NormalizeFrames(Frame_t *frames, int count)
         SDL_DestroySurface(frames[i].image);
         frames[i].image = SDL_DuplicateSurface(image);
         if (!frames[i].image) {
-            return SDL_FALSE;
+            return false;
         }
 
         lastDispose = frames[i].disposal;
@@ -197,11 +196,11 @@ static SDL_bool NormalizeFrames(Frame_t *frames, int count)
 
     SDL_DestroySurface( image );
 
-    return SDL_TRUE;
+    return true;
 }
 
 static Anim_t *
-IMG_LoadGIF_IO_Internal(SDL_IOStream *src, SDL_bool load_anim)
+IMG_LoadGIF_IO_Internal(SDL_IOStream *src, bool load_anim)
 {
     unsigned char buf[16];
     unsigned char c;
@@ -314,7 +313,7 @@ IMG_LoadGIF_IO_Internal(SDL_IOStream *src, SDL_bool load_anim)
 
         if (image) {
             if (state->Gif89.transparent >= 0) {
-                SDL_SetSurfaceColorKey(image, SDL_TRUE, state->Gif89.transparent);
+                SDL_SetSurfaceColorKey(image, true, state->Gif89.transparent);
             }
 
             frames = (Frame_t *)SDL_realloc(anim->frames, (anim->count + 1) * sizeof(*anim->frames));
@@ -614,6 +613,7 @@ ReadImage(SDL_IOStream * src, int len, int height, int cmapSize,
           int gray, int interlace, int ignore, State_t * state)
 {
     Image *image;
+    SDL_Palette *palette;
     unsigned char c;
     int i, v;
     int xpos = 0, ypos = 0, pass = 0;
@@ -643,14 +643,18 @@ ReadImage(SDL_IOStream * src, int len, int height, int cmapSize,
     if (!image) {
         return NULL;
     }
-    if (!image->pixels) {
-        SDL_DestroySurface(image);
+
+    palette = SDL_CreateSurfacePalette(image);
+    if (!palette) {
         return NULL;
     }
-
-    for (i = 0; i < cmapSize; i++)
-        ImageSetCmap(image, i, cmap[CM_RED][i],
-                     cmap[CM_GREEN][i], cmap[CM_BLUE][i]);
+    if (cmapSize > palette->ncolors) {
+        cmapSize = palette->ncolors;
+    }
+    palette->ncolors = cmapSize;
+    for (i = 0; i < cmapSize; i++) {
+        ImageSetCmap(image, i, cmap[CM_RED][i], cmap[CM_GREEN][i], cmap[CM_BLUE][i]);
+    }
 
     while ((v = LWZReadByte(src, FALSE, c, state)) >= 0) {
         ((Uint8 *)image->pixels)[xpos + ypos * image->pitch] = (Uint8)v;
@@ -703,7 +707,7 @@ ReadImage(SDL_IOStream * src, int len, int height, int cmapSize,
 /* Load a GIF type animation from an SDL datasource */
 IMG_Animation *IMG_LoadGIFAnimation_IO(SDL_IOStream *src)
 {
-    Anim_t *internal = IMG_LoadGIF_IO_Internal(src, SDL_TRUE);
+    Anim_t *internal = IMG_LoadGIF_IO_Internal(src, true);
     if (internal) {
         IMG_Animation *anim = (IMG_Animation *)SDL_malloc(sizeof(*anim));
         if (anim) {
@@ -748,32 +752,34 @@ IMG_Animation *IMG_LoadGIFAnimation_IO(SDL_IOStream *src)
 #ifdef LOAD_GIF
 
 /* See if an image is contained in a data source */
-int IMG_isGIF(SDL_IOStream *src)
+bool IMG_isGIF(SDL_IOStream *src)
 {
     Sint64 start;
-    int is_GIF;
+    bool is_GIF;
     char magic[6];
 
-    if ( !src )
-        return 0;
+    if (!src) {
+        return false;
+    }
+
     start = SDL_TellIO(src);
-    is_GIF = 0;
+    is_GIF = false;
     if (SDL_ReadIO(src, magic, sizeof(magic)) == sizeof(magic) ) {
         if ( (SDL_strncmp(magic, "GIF", 3) == 0) &&
              ((SDL_memcmp(magic + 3, "87a", 3) == 0) ||
               (SDL_memcmp(magic + 3, "89a", 3) == 0)) ) {
-            is_GIF = 1;
+            is_GIF = true;
         }
     }
     SDL_SeekIO(src, start, SDL_IO_SEEK_SET);
-    return(is_GIF);
+    return is_GIF;
 }
 
 /* Load a GIF type image from an SDL datasource */
 SDL_Surface *IMG_LoadGIF_IO(SDL_IOStream *src)
 {
     SDL_Surface *image = NULL;
-    Anim_t *internal = IMG_LoadGIF_IO_Internal(src, SDL_FALSE);
+    Anim_t *internal = IMG_LoadGIF_IO_Internal(src, false);
     if (internal) {
         image = internal->frames[0].image;
         SDL_free(internal->frames);
@@ -788,15 +794,15 @@ SDL_Surface *IMG_LoadGIF_IO(SDL_IOStream *src)
 #endif
 
 /* See if an image is contained in a data source */
-int IMG_isGIF(SDL_IOStream *src)
+bool IMG_isGIF(SDL_IOStream *src)
 {
-    return(0);
+    return false;
 }
 
 /* Load a GIF type image from an SDL datasource */
 SDL_Surface *IMG_LoadGIF_IO(SDL_IOStream *src)
 {
-    return(NULL);
+    return NULL;
 }
 
 #endif /* LOAD_GIF */

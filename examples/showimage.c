@@ -1,6 +1,6 @@
 /*
   showimage:  A test application for the SDL image loading library.
-  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -56,7 +56,8 @@ int main(int argc, char *argv[])
     SDL_Renderer *renderer = NULL;
     SDL_Texture *texture = NULL;
     Uint32 flags;
-    int i, w, h;
+    float w, h;
+    int i;
     int done = 0;
     int quit = 0;
     SDL_Event event;
@@ -81,7 +82,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (SDL_Init(SDL_INIT_VIDEO) == -1) {
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
         SDL_Log("SDL_Init(SDL_INIT_VIDEO) failed: %s\n", SDL_GetError());
         result = 2;
         goto done;
@@ -94,10 +95,10 @@ int main(int argc, char *argv[])
         goto done;
     }
 
-    if (SDL_GetBooleanProperty(SDL_GetDisplayProperties(SDL_GetPrimaryDisplay()), SDL_PROP_DISPLAY_HDR_ENABLED_BOOLEAN, SDL_FALSE)) {
+    if (SDL_GetBooleanProperty(SDL_GetDisplayProperties(SDL_GetPrimaryDisplay()), SDL_PROP_DISPLAY_HDR_ENABLED_BOOLEAN, false)) {
         SDL_PropertiesID props = SDL_CreateProperties();
 
-        SDL_SetProperty(props, SDL_PROP_RENDERER_CREATE_WINDOW_POINTER, window);
+        SDL_SetPointerProperty(props, SDL_PROP_RENDERER_CREATE_WINDOW_POINTER, window);
         SDL_SetNumberProperty(props, SDL_PROP_RENDERER_CREATE_OUTPUT_COLORSPACE_NUMBER, SDL_COLORSPACE_SRGB_LINEAR);
         renderer = SDL_CreateRendererWithProperties(props);
         SDL_DestroyProperties(props);
@@ -145,7 +146,7 @@ int main(int argc, char *argv[])
 
             /* Use the tonemap operator to convert to SDR output */
             SDL_SetStringProperty(SDL_GetSurfaceProperties(surface), SDL_PROP_SURFACE_TONEMAP_OPERATOR_STRING, tonemap);
-            temp = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_RGBA32);
+            temp = SDL_ConvertSurface(surface, SDL_PIXELFORMAT_RGBA32);
             SDL_DestroySurface(surface);
             if (!temp) {
                 SDL_Log("Couldn't convert surface: %s\n", SDL_GetError());
@@ -165,25 +166,26 @@ int main(int argc, char *argv[])
                 continue;
             }
         }
-        SDL_QueryTexture(texture, NULL, NULL, &w, &h);
+        SDL_GetTextureSize(texture, &w, &h);
 
         /* Save the image file, if desired */
         if (saveFile) {
             SDL_Surface *surface = IMG_Load(argv[i]);
             if (surface) {
                 const char *ext = SDL_strrchr(saveFile, '.');
+                bool saved = false;
                 if (ext && SDL_strcasecmp(ext, ".avif") == 0) {
-                    result = IMG_SaveAVIF(surface, saveFile, 90);
+                    saved = IMG_SaveAVIF(surface, saveFile, 90);
                 } else if (ext && SDL_strcasecmp(ext, ".bmp") == 0) {
-                    result = SDL_SaveBMP(surface, saveFile);
+                    saved = SDL_SaveBMP(surface, saveFile);
                 } else if (ext && SDL_strcasecmp(ext, ".jpg") == 0) {
-                    result = IMG_SaveJPG(surface, saveFile, 90);
+                    saved = IMG_SaveJPG(surface, saveFile, 90);
                 } else if (ext && SDL_strcasecmp(ext, ".png") == 0) {
-                    result = IMG_SavePNG(surface, saveFile);
+                    saved = IMG_SavePNG(surface, saveFile);
                 } else {
-                    result = SDL_SetError("Unknown save file type");
+                    SDL_SetError("Unknown save file type");
                 }
-                if (result < 0) {
+                if (!saved) {
                     SDL_Log("Couldn't save %s: %s\n", saveFile, SDL_GetError());
                     result = 3;
                 }
@@ -195,7 +197,7 @@ int main(int argc, char *argv[])
 
         /* Show the window */
         SDL_SetWindowTitle(window, argv[i]);
-        SDL_SetWindowSize(window, w, h);
+        SDL_SetWindowSize(window, (int)w, (int)h);
         SDL_ShowWindow(window);
 
         done = quit;
@@ -203,7 +205,7 @@ int main(int argc, char *argv[])
             while ( SDL_PollEvent(&event) ) {
                 switch (event.type) {
                     case SDL_EVENT_KEY_UP:
-                        switch (event.key.keysym.sym) {
+                        switch (event.key.key) {
                         case SDLK_LEFT:
                             if ( i > 1 ) {
                                 i -= 2;
@@ -216,7 +218,7 @@ int main(int argc, char *argv[])
                             }
                             break;
                         case SDLK_ESCAPE:
-                        case SDLK_q:
+                        case SDLK_Q:
                             argv[i+1] = NULL;
                             SDL_FALLTHROUGH;
                         case SDLK_SPACE:
@@ -239,7 +241,7 @@ int main(int argc, char *argv[])
                 }
             }
             /* Draw a background pattern in case the image has transparency */
-            draw_background(renderer, w, h);
+            draw_background(renderer, (int)w, (int)h);
 
             /* Display the image */
             SDL_RenderTexture(renderer, texture, NULL, NULL);
