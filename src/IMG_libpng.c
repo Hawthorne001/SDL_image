@@ -1274,7 +1274,7 @@ bool IMG_CreateAPNGAnimationDecoder(IMG_AnimationDecoder *decoder, SDL_Propertie
     while (!found_iend) {
         char chunk_type[5] = { 0 };
         png_bytep chunk = NULL;
-        Uint32 chunk_size;
+        Uint32 chunk_size = 0;
         png_bytep chunk_data = NULL;
         Uint32 chunk_length = 0;
         bool chunk_saved = false;
