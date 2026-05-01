@@ -1502,7 +1502,7 @@ bool IMG_CreateAPNGAnimationDecoder(IMG_AnimationDecoder *decoder, SDL_Propertie
         }
     }
 
-    if (!ctx->is_apng || ctx->fctl_count == 0 || ctx->actl.num_frames > ctx->fctl_count) {
+    if (!ctx->is_apng || ctx->fctl_count == 0 || ctx->actl.num_frames > (unsigned int)ctx->fctl_count) {
         SDL_SetError("Not an APNG file or not enough frame control chunks found");
         IMG_AnimationDecoderClose_Internal(decoder);
         return false;
