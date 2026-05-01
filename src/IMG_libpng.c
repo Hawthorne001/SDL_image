@@ -1009,6 +1009,9 @@ static bool read_png_chunk(SDL_IOStream *stream, png_bytep *chunk, Uint32 *chunk
     SDL_memcpy(chunk_type, header+4, 4);
 
     // Allocate memory for chunk
+    if (*data_length > (SDL_MAX_UINT32 - (sizeof(header) + 4))) {
+        return SDL_SetError("Corrupt PNG");
+    }
     *chunk_size = sizeof(header) + *data_length + 4;
     *chunk = (png_bytep)SDL_malloc(*chunk_size);
     if (!*chunk) {
